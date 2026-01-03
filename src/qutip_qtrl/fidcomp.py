@@ -716,6 +716,178 @@ class FidCompTraceDiff(FidelityComputer):
             )
         return grad
 
+class FidCompTraceDiff2(FidelityComputer):
+    """
+    Computes fidelity error and gradient for general system dynamics
+    by calculating the the fidelity error as the trace of the overlap
+    of the difference between the target and evolution resulting from
+    the pulses with the transpose of the same.
+    This should provide a distance measure for dynamics described by matrices
+    Note the gradient calculation is taken from:
+    'Robust quantum gates for open systems via optimal control:
+    Markovian versus non-Markovian dynamics'
+    Frederik F Floether, Pierre de Fouquieres, and Sophie G Schirmer
+
+    Attributes
+    ----------
+    scale_factor : float
+        The fidelity error calculated is of some arbitary scale. This
+        factor can be used to scale the fidelity error such that it may
+        represent some physical measure
+        If None is given then it is caculated as 1/2N, where N
+        is the dimension of the drift, when the Dynamics are initialised.
+    """
+
+    def reset(self):
+        FidelityComputer.reset(self)
+        self.id_text = "TRACEDIFF"
+        self.scale_factor = None
+        self.uses_onwd_evo = True
+        if not self.parent.prop_computer.grad_exact:
+            raise errors.UsageError(
+                "This FidelityComputer can only be"
+                " used with an exact gradient PropagatorComputer."
+            )
+        self.apply_params()
+
+    def init_comp(self):
+        """
+        initialises the computer based on the configuration of the Dynamics
+        Calculates the scale_factor is not already set
+        """
+        if self.scale_factor is None:
+            self.scale_factor = 1.0 / (2.0 * self.parent.get_drift_dim())
+            if self.log_level <= logging.DEBUG:
+                logger.debug(
+                    "Scale factor calculated as {}".format(self.scale_factor)
+                )
+
+    def get_fid_err(self):
+        """
+        Gets the absolute error in the fidelity
+        """
+        if not self.fidelity_current:
+            dyn = self.parent
+            dyn.compute_evolution()
+            n_ts = dyn.num_tslots
+            evo_final = dyn._fwd_evo[n_ts]
+            evo_f_diff = dyn._target - evo_final
+            if self.log_level <= logging.DEBUG_VERBOSE:
+                logger.log(
+                    logging.DEBUG_VERBOSE,
+                    "Calculating TraceDiff "
+                    "fidelity...\n Target:\n{}\n Evo final:\n{}\n"
+                    "Evo final diff:\n{}".format(
+                        dyn._target, evo_final, evo_f_diff
+                    ),
+                )
+
+            # Calculate the fidelity error using the trace difference norm
+            # Note that the value should have not imagnary part, so using
+            # np.real, just avoids the complex casting warning
+            if dyn.oper_dtype == Qobj:
+                self.fid_err = self.scale_factor * np.real(
+                    (evo_f_diff.dag() * evo_f_diff).tr()
+                )
+            else:
+                self.fid_err = self.scale_factor * np.real(
+                    _trace(evo_f_diff.conj().T.dot(evo_f_diff))
+                )
+
+            if np.isnan(self.fid_err):
+                self.fid_err = np.inf
+
+            if dyn.stats is not None:
+                dyn.stats.num_fidelity_computes += 1
+
+            self.fidelity_current = True
+            if self.log_level <= logging.DEBUG:
+                logger.debug("Fidelity error: {}".format(self.fid_err))
+
+        return self.fid_err
+
+    def get_fid_err_gradient(self):
+        """
+        Returns the normalised gradient of the fidelity error
+        in a (nTimeslots x n_ctrls) array
+        The gradients are cached in case they are requested
+        mutliple times between control updates
+        (although this is not typically found to happen)
+        """
+        if not self.fid_err_grad_current:
+            dyn = self.parent
+            self.fid_err_grad = self.compute_fid_err_grad()
+            self.fid_err_grad_current = True
+            if dyn.stats is not None:
+                dyn.stats.num_grad_computes += 1
+
+            self.grad_norm = np.sqrt(np.sum(self.fid_err_grad**2))
+            if self.log_level <= logging.DEBUG_INTENSE:
+                logger.log(
+                    logging.DEBUG_INTENSE,
+                    "fidelity error gradients:\n"
+                    "{}".format(self.fid_err_grad),
+                )
+
+            if self.log_level <= logging.DEBUG:
+                logger.debug("Gradient norm: " "{} ".format(self.grad_norm))
+
+        return self.fid_err_grad
+
+    def compute_fid_err_grad(self):
+        """
+        Calculate exact gradient of the fidelity error function
+        wrt to each timeslot control amplitudes.
+        Uses the trace difference norm fidelity
+        These are returned as a (nTimeslots x n_ctrls) array
+        """
+        dyn = self.parent
+        n_ctrls = dyn.num_ctrls
+        n_ts = dyn.num_tslots
+
+        # create n_ts x n_ctrls zero array for grad start point
+        grad = np.zeros([n_ts, n_ctrls])
+
+        dyn.tslot_computer.flag_all_calc_now()
+        dyn.compute_evolution()
+
+        # loop through all ctrl timeslots calculating gradients
+        time_st = timeit.default_timer()
+
+        evo_final = dyn._fwd_evo[n_ts]
+        evo_f_diff = dyn._target - evo_final
+        for j in range(n_ctrls):
+            for k in range(n_ts):
+                fwd_evo = dyn._fwd_evo[k]
+                if dyn.oper_dtype == Qobj:
+                    evo_grad = dyn._get_prop_grad(k, j) * fwd_evo
+                    if k + 1 < n_ts:
+                        evo_grad = dyn._onwd_evo[k + 1] * evo_grad
+                    # Note that the value should have not imagnary part, so
+                    # using np.real, just avoids the complex casting warning
+                    g = (
+                        -2
+                        * self.scale_factor
+                        * np.real((evo_f_diff.dag() * evo_grad).tr())
+                    )
+                else:
+                    evo_grad = dyn._get_prop_grad(k, j).dot(fwd_evo)
+                    if k + 1 < n_ts:
+                        evo_grad = dyn._onwd_evo[k + 1].dot(evo_grad)
+                    g = (
+                        -2
+                        * self.scale_factor
+                        * np.real(_trace(evo_f_diff.conj().T.dot(evo_grad)))
+                    )
+                if np.isnan(g):
+                    g = np.inf
+
+                grad[k, j] = g
+        if dyn.stats is not None:
+            dyn.stats.wall_time_gradient_compute += (
+                timeit.default_timer() - time_st
+            )
+        return grad
 
 class FidCompTraceDiffApprox(FidCompTraceDiff):
     """
