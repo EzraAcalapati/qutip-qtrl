@@ -843,7 +843,7 @@ class SecretInd(FidelityComputer):
                 Eu.append(rho_j)
                 S.append(Uj.conj().T @ rho_j @ Uj)
 
-            # print(S)
+            print('Secret Independence = ', S)
 
             # Calculate the fidelity error using the trace difference norm
             # Note that the value should have not imagnary part, so using
