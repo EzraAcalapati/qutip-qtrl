@@ -762,30 +762,6 @@ class SecretInd(FidelityComputer):
                     "Scale factor calculated as {}".format(self.scale_factor)
                 )
 
-    def Ry(theta: float) -> np.ndarray:
-        """R_y(theta) = exp(-i theta/2 * sigma_y) in the {|0>,|1>} basis."""
-        c = np.cos(theta / 2.0)
-        s = np.sin(theta / 2.0)
-        return np.array([[c, -s],
-                         [s,  c]], dtype=complex)
-
-    def as_same_type(U_tot: np.ndarray, evo_final):
-        """
-        Convert U_tot (numpy array) into the same type/container as evo_final.
-        """
-        # Case 1: evo_final is a Qobj (QuTiP operator / superoperator)
-        if isinstance(evo_final, Qobj):
-            # Best: reuse dims so QuTiP treats it consistently
-            return Qobj(U_tot, dims=evo_final.dims)
-    
-        # Case 2: evo_final is a NumPy array
-        U = np.asarray(U_tot)
-        # Match dtype if possible
-        try:
-            return U.astype(evo_final.dtype, copy=False)
-        except Exception:
-            return U.astype(complex, copy=False)
-
     def get_fid_err(self):
         """
         Gets the absolute error in the fidelity
@@ -805,6 +781,30 @@ class SecretInd(FidelityComputer):
                         dyn._target, evo_final, evo_f_diff
                     ),
                 )
+
+            def Ry(theta: float) -> np.ndarray:
+            """R_y(theta) = exp(-i theta/2 * sigma_y) in the {|0>,|1>} basis."""
+            c = np.cos(theta / 2.0)
+            s = np.sin(theta / 2.0)
+            return np.array([[c, -s],
+                             [s,  c]], dtype=complex)
+    
+            def as_same_type(U_tot: np.ndarray, evo_final):
+                """
+                Convert U_tot (numpy array) into the same type/container as evo_final.
+                """
+                # Case 1: evo_final is a Qobj (QuTiP operator / superoperator)
+                if isinstance(evo_final, Qobj):
+                    # Best: reuse dims so QuTiP treats it consistently
+                    return Qobj(U_tot, dims=evo_final.dims)
+            
+                # Case 2: evo_final is a NumPy array
+                U = np.asarray(U_tot)
+                # Match dtype if possible
+                try:
+                    return U.astype(evo_final.dtype, copy=False)
+                except Exception:
+                    return U.astype(complex, copy=False)
 
             # Build U_j = Rz(0) Ry(theta_j) = Ry(theta_j), theta_j = j*pi/4, j=0..7
             U = [Ry(j * np.pi / 4.0) for j in range(8)]
