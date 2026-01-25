@@ -1914,7 +1914,7 @@ def create_pulse_optimizer(
     elif fid_type_up == "TRACEDIFF":
         if not isinstance(dyn.fid_computer, fidcomp.FidCompTraceDiff):
             dyn.fid_computer = fidcomp.FidCompTraceDiff(dyn)
-    elif fid_type_up == "TRACEDIFF2":
+    elif fid_type_up == "SECRETIND":
         if not isinstance(dyn.fid_computer, fidcomp.SecretInd):
             dyn.fid_computer = fidcomp.SecretInd(dyn)
     elif fid_type_up == "UNIT":
