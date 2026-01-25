@@ -716,7 +716,7 @@ class FidCompTraceDiff(FidelityComputer):
             )
         return grad
 
-class FidCompTraceDiff2(FidelityComputer):
+class SecretInd(FidelityComputer):
     """
     Computes fidelity error and gradient for general system dynamics
     by calculating the the fidelity error as the trace of the overlap
