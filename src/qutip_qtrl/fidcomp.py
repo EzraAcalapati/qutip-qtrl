@@ -771,6 +771,11 @@ class SecretInd(FidelityComputer):
             dyn.compute_evolution()
             n_ts = dyn.num_tslots
             evo_final = dyn._fwd_evo[n_ts]
+            print("type(evo_final) =", type(evo_final))
+            try:
+                print("evo_final.shape =", evo_final.shape)
+            except Exception:
+                pass
             evo_f_diff = dyn._target - evo_final
             if self.log_level <= logging.DEBUG_VERBOSE:
                 logger.log(
@@ -808,6 +813,8 @@ class SecretInd(FidelityComputer):
 
             # Build U_j = Rz(0) Ry(theta_j) = Ry(theta_j), theta_j = j*pi/4, j=0..7
             U = [Ry(j * np.pi / 4.0) for j in range(8)]
+
+            
         
             # Assemble block-diagonal (direct sum) U_tot = ⊕_j U_j  (size 16x16)
             #U_tot = np.zeros((16, 16), dtype=complex)
