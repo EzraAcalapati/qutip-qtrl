@@ -762,6 +762,30 @@ class SecretInd(FidelityComputer):
                     "Scale factor calculated as {}".format(self.scale_factor)
                 )
 
+    def Ry(theta: float) -> np.ndarray:
+        """R_y(theta) = exp(-i theta/2 * sigma_y) in the {|0>,|1>} basis."""
+        c = np.cos(theta / 2.0)
+        s = np.sin(theta / 2.0)
+        return np.array([[c, -s],
+                         [s,  c]], dtype=complex)
+
+    def as_same_type(U_tot: np.ndarray, evo_final):
+        """
+        Convert U_tot (numpy array) into the same type/container as evo_final.
+        """
+        # Case 1: evo_final is a Qobj (QuTiP operator / superoperator)
+        if isinstance(evo_final, Qobj):
+            # Best: reuse dims so QuTiP treats it consistently
+            return Qobj(U_tot, dims=evo_final.dims)
+    
+        # Case 2: evo_final is a NumPy array
+        U = np.asarray(U_tot)
+        # Match dtype if possible
+        try:
+            return U.astype(evo_final.dtype, copy=False)
+        except Exception:
+            return U.astype(complex, copy=False)
+
     def get_fid_err(self):
         """
         Gets the absolute error in the fidelity
@@ -782,17 +806,49 @@ class SecretInd(FidelityComputer):
                     ),
                 )
 
+            # Build U_j = Rz(0) Ry(theta_j) = Ry(theta_j), theta_j = j*pi/4, j=0..7
+            U = [Ry(j * np.pi / 4.0) for j in range(8)]
+        
+            # Assemble block-diagonal (direct sum) U_tot = ⊕_j U_j  (size 16x16)
+            #U_tot = np.zeros((16, 16), dtype=complex)
+            #for j, Uj in enumerate(U_blocks):
+            #    a, b = 2*j, 2*(j+1)
+            #    U_tot[a:b, a:b] = Uj
+            K = 8
+            d = 2
+
+            S = [] # Secret Independence
+            if isinstance(evo_final, Qobj):
+                E = evo_final  # Qobj, shape (16,16)
+                Eu = []
+                for j in range(K):
+                    a, b = d*j, d*(j+1)
+                    Ej = Qobj(E.full()[a:b, a:b], dims=[[2],[2]])
+                    Uj = Qobj(U[j],              dims=[[2],[2]])
+                    Eu.append(Ej)
+                    S.append(Ej * Uj.dag())
+            else:
+                E = evo_final if isinstance(evo_final, np.ndarray) else evo_final.full()
+                Eu = [E[d*j:d*(j+1), d*j:d*(j+1)] for j in range(K)]
+                for j in range(K):
+                    Uj = np.asarray(U[j], dtype=complex)
+                    S.append(Eu[j].dot(Uj.conj().T))
+
+            print(S)
+
             # Calculate the fidelity error using the trace difference norm
             # Note that the value should have not imagnary part, so using
             # np.real, just avoids the complex casting warning
             if dyn.oper_dtype == Qobj:
                 self.fid_err = self.scale_factor * np.real(
-                    (evo_f_diff.dag() * evo_f_diff).tr()
+                    (evo_f_diff.dag() * evo_f_diff).tr() 
                 )
+                print('This is a Qobj')
             else:
                 self.fid_err = self.scale_factor * np.real(
                     _trace(evo_f_diff.conj().T.dot(evo_f_diff))
                 )
+                print('This is not a Qobj')
 
             if np.isnan(self.fid_err):
                 self.fid_err = np.inf
