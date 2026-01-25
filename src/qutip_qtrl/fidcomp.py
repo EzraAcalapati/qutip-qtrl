@@ -837,18 +837,20 @@ class SecretInd(FidelityComputer):
                     S.append(Ej * Uj.dag())
             else:
                 E = evo_final if isinstance(evo_final, np.ndarray) else evo_final.full()
+                print(E)
                 
                 # Eu = [E[d*j:d*(j+1), d*j:d*(j+1)] for j in range(K)]
                 for j in range(K):
                     psi_j = np.array([[1.0],
                           [0.0]], dtype=complex)
                     psi_j = E[d*j:d*(j+1)] if E.ndim == 1 else E[d*j:d*(j+1), :]
-                    print(psi_j)
+                    psi_i = psi_j[0]
+                    print(psi_i)
                     Uj = np.asarray(U[j], dtype=complex)
-                    Eu.append(psi_j)
-                    S.append(Uj.conj().T @ psi_j)
+                    Eu.append(psi_i)
+                    S.append(Uj.conj().T @ psi_i)
 
-            print(S)
+            # print(S)
 
             # Calculate the fidelity error using the trace difference norm
             # Note that the value should have not imagnary part, so using
