@@ -829,10 +829,13 @@ class SecretInd(FidelityComputer):
                     S.append(Ej * Uj.dag())
             else:
                 E = evo_final if isinstance(evo_final, np.ndarray) else evo_final.full()
-                Eu = [E[d*j:d*(j+1), d*j:d*(j+1)] for j in range(K)]
+                
+                # Eu = [E[d*j:d*(j+1), d*j:d*(j+1)] for j in range(K)]
                 for j in range(K):
+                    psi_j = E[d*j:d*(j+1)] if E.ndim == 1 else E[d*j:d*(j+1), :]
                     Uj = np.asarray(U[j], dtype=complex)
-                    S.append(Uj.conj().T.dot(Eu[j]))
+                    Eu.append(psi_j)
+                    S.append(Uj.conj().T @ psi_j)
 
             print(S)
 
