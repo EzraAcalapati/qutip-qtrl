@@ -832,7 +832,7 @@ class SecretInd(FidelityComputer):
                 Eu = [E[d*j:d*(j+1), d*j:d*(j+1)] for j in range(K)]
                 for j in range(K):
                     Uj = np.asarray(U[j], dtype=complex)
-                    S.append(Eu[j].dot(Uj.conj().T))
+                    S.append(Uj.conj().T.dot(Eu[j]))
 
             print(S)
 
