@@ -783,11 +783,11 @@ class SecretInd(FidelityComputer):
                 )
 
             def Ry(theta: float) -> np.ndarray:
-            """R_y(theta) = exp(-i theta/2 * sigma_y) in the {|0>,|1>} basis."""
-            c = np.cos(theta / 2.0)
-            s = np.sin(theta / 2.0)
-            return np.array([[c, -s],
-                             [s,  c]], dtype=complex)
+                """R_y(theta) = exp(-i theta/2 * sigma_y) in the {|0>,|1>} basis."""
+                c = np.cos(theta / 2.0)
+                s = np.sin(theta / 2.0)
+                return np.array([[c, -s],
+                                 [s,  c]], dtype=complex)
     
             def as_same_type(U_tot: np.ndarray, evo_final):
                 """
