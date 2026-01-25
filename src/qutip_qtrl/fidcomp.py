@@ -823,12 +823,19 @@ class SecretInd(FidelityComputer):
             #    U_tot[a:b, a:b] = Uj
             K = 8
             d = 2
+            D = K*d  # 16
+
+            E = np.asarray(evo_final, dtype=complex)
+            if E.ndim == 2 and E.shape[1] == 1:
+                E = E[:, 0]  # flatten to (256,)
+            
+            # Unvectorize vec(rho) -> rho using column-major order
+            rho_tot = E.reshape((D, D), order='F')   # (16,16) numpy
 
             S = [] # Secret Independence
             Eu = []
-            E = evo_final if isinstance(evo_final, np.ndarray) else evo_final.full()
+            # E = evo_final if isinstance(evo_final, np.ndarray) else evo_final.full()
             # print(E)
-            rho_tot = vector_to_operator(Qobj(E)).full()
             for j in range(K):
                 rho_j = rho_tot[d*j:d*(j+1), d*j:d*(j+1)]
                 print(rho_j)
