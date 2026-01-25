@@ -826,29 +826,15 @@ class SecretInd(FidelityComputer):
 
             S = [] # Secret Independence
             Eu = []
-            if isinstance(evo_final, Qobj):
-                E = evo_final  # Qobj, shape (16,16)
-                
-                for j in range(K):
-                    a, b = d*j, d*(j+1)
-                    Ej = Qobj(E.full()[a:b, a:b], dims=[[2],[2]])
-                    Uj = Qobj(U[j],              dims=[[2],[2]])
-                    Eu.append(Ej)
-                    S.append(Ej * Uj.dag())
-            else:
-                E = evo_final if isinstance(evo_final, np.ndarray) else evo_final.full()
-                print(E)
-                
-                # Eu = [E[d*j:d*(j+1), d*j:d*(j+1)] for j in range(K)]
-                for j in range(K):
-                    psi_j = np.array([[1.0],
-                          [0.0]], dtype=complex)
-                    psi_j = E[d*j:d*(j+1)] if E.ndim == 1 else E[d*j:d*(j+1), :]
-                    psi_i = psi_j[0]
-                    print(psi_i)
-                    Uj = np.asarray(U[j], dtype=complex)
-                    Eu.append(psi_i)
-                    S.append(Uj.conj().T @ psi_i)
+            E = evo_final if isinstance(evo_final, np.ndarray) else evo_final.full()
+            # print(E)
+            rho_tot = vector_to_operator(Qobj(E)).full()
+            for j in range(K):
+                rho_j = rho_tot[d*j:d*(j+1), d*j:d*(j+1)]
+                print(rho_j)
+                Uj = np.asarray(U[j], dtype=complex)
+                Eu.append(rho_j)
+                S.append(Uj.conj().T @ rho_j @ Uj)
 
             # print(S)
 
