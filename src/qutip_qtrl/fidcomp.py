@@ -818,9 +818,10 @@ class SecretInd(FidelityComputer):
             d = 2
 
             S = [] # Secret Independence
+            Eu = []
             if isinstance(evo_final, Qobj):
                 E = evo_final  # Qobj, shape (16,16)
-                Eu = []
+                
                 for j in range(K):
                     a, b = d*j, d*(j+1)
                     Ej = Qobj(E.full()[a:b, a:b], dims=[[2],[2]])
