@@ -815,10 +815,10 @@ class SecretInd(FidelityComputer):
             if E.ndim == 2 and E.shape[1] == 1:
                 E = E[:, 0]  # flatten to (256,)
 
-            D = np.sqrt(np.shape(E)[0])
+            D = int(np.sqrt(np.shape(E)[0]))
             print(D)
             d = 2
-            K = D / d
+            K = int(D / d)
 
             # Build U_j = Rz(0) Ry(theta_j) = Ry(theta_j), theta_j = j*pi/4, j=0..7
             U = [Ry(j * np.pi / 4.0) for j in range(K)]
