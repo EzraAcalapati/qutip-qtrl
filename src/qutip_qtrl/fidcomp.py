@@ -811,23 +811,19 @@ class SecretInd(FidelityComputer):
                 except Exception:
                     return U.astype(complex, copy=False)
 
-            # Build U_j = Rz(0) Ry(theta_j) = Ry(theta_j), theta_j = j*pi/4, j=0..7
-            U = [Ry(j * np.pi / 4.0) for j in range(8)]
-
-            
-        
-            # Assemble block-diagonal (direct sum) U_tot = ⊕_j U_j  (size 16x16)
-            #U_tot = np.zeros((16, 16), dtype=complex)
-            #for j, Uj in enumerate(U_blocks):
-            #    a, b = 2*j, 2*(j+1)
-            #    U_tot[a:b, a:b] = Uj
-            K = 8
-            d = 2
-            D = K*d  # 16
-
             E = np.asarray(evo_final, dtype=complex)
             if E.ndim == 2 and E.shape[1] == 1:
                 E = E[:, 0]  # flatten to (256,)
+
+            D = np.shape(E)
+            print(D)
+            d = 2
+            K = D / d
+
+            # Build U_j = Rz(0) Ry(theta_j) = Ry(theta_j), theta_j = j*pi/4, j=0..7
+            U = [Ry(j * np.pi / 4.0) for j in range(K)]
+
+            
             
             # Unvectorize vec(rho) -> rho using column-major order
             rho_tot = E.reshape((D, D), order='F')   # (16,16) numpy
