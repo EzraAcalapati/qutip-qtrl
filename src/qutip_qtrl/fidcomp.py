@@ -815,7 +815,7 @@ class SecretInd(FidelityComputer):
             if E.ndim == 2 and E.shape[1] == 1:
                 E = E[:, 0]  # flatten to (256,)
 
-            D = np.shape(E)
+            D = np.sqrt(np.shape(E)[0])
             print(D)
             d = 2
             K = D / d
