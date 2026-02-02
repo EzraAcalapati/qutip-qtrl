@@ -992,8 +992,8 @@ class SecretInd(FidelityComputer):
                         * self.scale_factor
                         * np.real(_trace(evo_f_diff.conj().T.dot(evo_grad)))
                     )
-                    print('Grad is not a Qobj')
-                    np.shape(evo_grad)
+                    #print('Grad is not a Qobj')
+                    #np.shape(evo_grad)
                 if np.isnan(g):
                     g = np.inf
 
