@@ -740,7 +740,7 @@ class SecretInd(FidelityComputer):
 
     def reset(self):
         FidelityComputer.reset(self)
-        self.id_text = "TRACEDIFF"
+        self.id_text = "SECRETIND"
         self.scale_factor = None
         self.uses_onwd_evo = True
         if not self.parent.prop_computer.grad_exact:
@@ -800,22 +800,22 @@ class SecretInd(FidelityComputer):
                 return np.array([[c, -1j*s],
                                  [-1j*s, c]], dtype=complex)
     
-            def as_same_type(U_tot: np.ndarray, evo_final):
-                """
-                Convert U_tot (numpy array) into the same type/container as evo_final.
-                """
-                # Case 1: evo_final is a Qobj (QuTiP operator / superoperator)
-                if isinstance(evo_final, Qobj):
-                    # Best: reuse dims so QuTiP treats it consistently
-                    return Qobj(U_tot, dims=evo_final.dims)
-            
-                # Case 2: evo_final is a NumPy array
-                U = np.asarray(U_tot)
-                # Match dtype if possible
-                try:
-                    return U.astype(evo_final.dtype, copy=False)
-                except Exception:
-                    return U.astype(complex, copy=False)
+            #def as_same_type(U_tot: np.ndarray, evo_final):
+            #    """
+            #    Convert U_tot (numpy array) into the same type/container as evo_final.
+            #    """
+            #    # Case 1: evo_final is a Qobj (QuTiP operator / superoperator)
+            #    if isinstance(evo_final, Qobj):
+            #        # Best: reuse dims so QuTiP treats it consistently
+            #        return Qobj(U_tot, dims=evo_final.dims)
+            #
+            #    # Case 2: evo_final is a NumPy array
+            #    U = np.asarray(U_tot)
+            #    # Match dtype if possible
+            #    try:
+            #        return U.astype(evo_final.dtype, copy=False)
+            #    except Exception:
+            #        return U.astype(complex, copy=False)
 
             rho_tot = np.asarray(evo_final, dtype=complex)
             if rho_tot.ndim == 2 and rho_tot.shape[1] == 1:
