@@ -817,9 +817,12 @@ class SecretInd(FidelityComputer):
                 except Exception:
                     return U.astype(complex, copy=False)
 
-            rho_evo = np.asarray(evo_final, dtype=complex)
-            if rho_evo.ndim == 2 and rho_evo.shape[1] == 1:
-                rho_evo = rho_evo[:, 0]  # flatten to (256,)
+            E = np.asarray(evo_final, dtype=complex)
+            if E.ndim == 2 and E.shape[1] == 1:
+                rho_tot = E[:, 0]  # flatten to (256,)
+
+            # Unvectorize vec(rho) -> rho using column-major order
+            rho_evo = rho_tot.reshape((D, D), order='F')   # (16,16) numpy
 
             D = int(np.sqrt(np.shape(rho_evo)[0]))
             print(D)
@@ -851,7 +854,7 @@ class SecretInd(FidelityComputer):
                             )/K
             
             # Unvectorize vec(rho) -> rho using column-major order
-            #rho_tot = rho_evo.reshape((D, D), order='F')   # (16,16) numpy
+            rho_tot = rho_evo.reshape((D, D), order='F')   # (16,16) numpy
 
             #S = [] # Secret Independence
             #Eu = []
