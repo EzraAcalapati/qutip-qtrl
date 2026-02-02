@@ -965,9 +965,45 @@ class SecretInd(FidelityComputer):
                         * self.scale_factor
                         * np.real(_trace(evo_f_diff.conj().T.dot(evo_grad)))
                     )
+                    print('Grad is not a Qobj')
+                    np.shape(evo_grad)
                 if np.isnan(g):
                     g = np.inf
 
+                grad_tot = np.asarray(evo_grad, dtype=complex)
+                if grad_tot.ndim == 2 and grad_tot.shape[1] == 1:
+                    grad_tot = grad_tot[:, 0]  # flatten to (256,)
+    
+                D = int(np.sqrt(np.shape(grad_tot)[0]))
+                print(D)
+                d = 2
+                K = int(D / d)
+    
+                # Unvectorize vec(rho) -> rho using column-major order
+                grad_evo = grad_tot.reshape((D, D), order='F')   # (16,16) numpy
+
+                evo_grad_si = grad_evo
+
+                # Build U_j = Rz(0) Ry(theta_j) = Ry(theta_j), theta_j = j*pi/4, j=0..7
+                U = np.eye(K*d, dtype=np.complex128)
+                for j in range(K):
+                    U[j*d:(j+1)*d, j*d:(j+1)*d] = Rx(j * np.pi / 4.0)
+
+                grad_obj = U.conjugate().T @ evo_grad_si @ U
+                grad_ave = np.zeros((d, d), dtype=complex)
+                for i in range(K):
+                    grad_ave += grad_obj[i*d:(i+1)*d, i*d:(i+1)*d]/K
+                
+                grad_ave_block = np.eye(K*d, dtype=np.complex128)
+                for j in range(K):
+                    grad_ave_block[j*d:(j+1)*d, j*d:(j+1)*d] = grad_ave
+                
+                obj_grad = grad_obj - grad_ave_block
+                
+                g1 = 2* np.real(
+                                    np.trace(obj.conj().T.dot(obj_grad))
+                                )/K
+                
                 grad[k, j] = g
         if dyn.stats is not None:
             dyn.stats.wall_time_gradient_compute += (
