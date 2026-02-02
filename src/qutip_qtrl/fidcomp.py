@@ -799,23 +799,6 @@ class SecretInd(FidelityComputer):
                 s = np.sin(theta / 2.0)
                 return np.array([[c, -1j*s],
                                  [-1j*s, c]], dtype=complex)
-    
-            #def as_same_type(U_tot: np.ndarray, evo_final):
-            #    """
-            #    Convert U_tot (numpy array) into the same type/container as evo_final.
-            #    """
-            #    # Case 1: evo_final is a Qobj (QuTiP operator / superoperator)
-            #    if isinstance(evo_final, Qobj):
-            #        # Best: reuse dims so QuTiP treats it consistently
-            #        return Qobj(U_tot, dims=evo_final.dims)
-            #
-            #    # Case 2: evo_final is a NumPy array
-            #    U = np.asarray(U_tot)
-            #    # Match dtype if possible
-            #    try:
-            #        return U.astype(evo_final.dtype, copy=False)
-            #    except Exception:
-            #        return U.astype(complex, copy=False)
 
             rho_tot = np.asarray(evo_final, dtype=complex)
             if rho_tot.ndim == 2 and rho_tot.shape[1] == 1:
@@ -864,8 +847,8 @@ class SecretInd(FidelityComputer):
             else:
                 self.fid_err = self.scale_factor * np.real(
                     _trace(evo_f_diff.conj().T.dot(evo_f_diff))
-                )*K
-                #self.fid_err = self.fid_err + secret_ind * 0.01
+                )
+                #self.fid_err = self.fid_err*K + secret_ind * 0.01
                 print('This is not a Qobj')
 
             if np.isnan(self.fid_err):
@@ -1025,7 +1008,6 @@ class SecretInd(FidelityComputer):
                                     np.trace(obj.conj().T.dot(obj_grad))
                                 )*K
                 #g = g*K + g1 * 0.01
-                g = g*K
                 grad[k, j] = g
         if dyn.stats is not None:
             dyn.stats.wall_time_gradient_compute += (
