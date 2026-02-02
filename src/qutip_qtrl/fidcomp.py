@@ -821,13 +821,13 @@ class SecretInd(FidelityComputer):
             if rho_tot.ndim == 2 and rho_tot.shape[1] == 1:
                 rho_tot = rho_tot[:, 0]  # flatten to (256,)
 
-            # Unvectorize vec(rho) -> rho using column-major order
-            rho_evo = rho_tot.reshape((D, D), order='F')   # (16,16) numpy
-
-            D = int(np.sqrt(np.shape(rho_evo)[0]))
+            D = int(np.sqrt(np.shape(rho_tot)[0]))
             print(D)
             d = 2
             K = int(D / d)
+
+            # Unvectorize vec(rho) -> rho using column-major order
+            rho_evo = rho_tot.reshape((D, D), order='F')   # (16,16) numpy
 
             # Build U_j = Rz(0) Ry(theta_j) = Ry(theta_j), theta_j = j*pi/4, j=0..7
             #U = [Ry(j * np.pi / 4.0) for j in range(K)]
@@ -852,9 +852,6 @@ class SecretInd(FidelityComputer):
             secret_ind = np.real(
                                 np.trace(obj.conj().T.dot(obj))
                             )/K
-            
-            # Unvectorize vec(rho) -> rho using column-major order
-            rho_tot = rho_evo.reshape((D, D), order='F')   # (16,16) numpy
 
             #S = [] # Secret Independence
             #Eu = []
