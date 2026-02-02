@@ -931,6 +931,13 @@ class SecretInd(FidelityComputer):
         n_ctrls = dyn.num_ctrls
         n_ts = dyn.num_tslots
 
+        def Rx(theta: float) -> np.ndarray:
+            """R_x(theta) = exp(-i theta/2 * sigma_x) in the {|0>,|1>} basis."""
+            c = np.cos(theta / 2.0)
+            s = np.sin(theta / 2.0)
+            return np.array([[c, -1j*s],
+                             [-1j*s, c]], dtype=complex)
+
         # create n_ts x n_ctrls zero array for grad start point
         grad = np.zeros([n_ts, n_ctrls])
 
