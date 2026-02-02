@@ -830,11 +830,9 @@ class SecretInd(FidelityComputer):
             rho_evo = rho_tot.reshape((D, D), order='F')   # (16,16) numpy
 
             # Build U_j = Rz(0) Ry(theta_j) = Ry(theta_j), theta_j = j*pi/4, j=0..7
-            #U = [Ry(j * np.pi / 4.0) for j in range(K)]
-            # Build U_j = Rz(0) Ry(theta_j) = Ry(theta_j), theta_j = j*pi/4, j=0..7
             U = np.eye(K*d, dtype=np.complex128)
             for j in range(K):
-                U[j*d:(j+1)*d, j*d:(j+1)*d] = Rx(j * np.pi / 4.0)
+                U[j*d:(j+1)*d, j*d:(j+1)*d] = Rx(j * 2 * np.pi / K)
 
             # Reversing the evolved rho into the objective rho
             rho_obj = U.conjugate().T @ rho_evo @ U
@@ -866,8 +864,8 @@ class SecretInd(FidelityComputer):
             else:
                 self.fid_err = self.scale_factor * np.real(
                     _trace(evo_f_diff.conj().T.dot(evo_f_diff))
-                )
-                self.fid_err = self.fid_err + secret_ind
+                )/K
+                # self.fid_err = self.fid_err + secret_ind * 0.1
                 print('This is not a Qobj')
 
             if np.isnan(self.fid_err):
@@ -955,7 +953,7 @@ class SecretInd(FidelityComputer):
         # Build U_j = Rz(0) Ry(theta_j) = Ry(theta_j), theta_j = j*pi/4, j=0..7
         U = np.eye(K*d, dtype=np.complex128)
         for j in range(K):
-            U[j*d:(j+1)*d, j*d:(j+1)*d] = Rx(j * np.pi / 4.0)
+            U[j*d:(j+1)*d, j*d:(j+1)*d] = Rx(j * 2 * np.pi / K)
 
         # Reversing the evolved rho into the objective rho
         rho_obj = U.conjugate().T @ rho_evo @ U
@@ -1026,8 +1024,8 @@ class SecretInd(FidelityComputer):
                 g1 = 2* np.real(
                                     np.trace(obj.conj().T.dot(obj_grad))
                                 )/K
-                g = g + g1
-                
+                #g = g/K + g1 * 0.1
+                g = g/K
                 grad[k, j] = g
         if dyn.stats is not None:
             dyn.stats.wall_time_gradient_compute += (
