@@ -853,17 +853,6 @@ class SecretInd(FidelityComputer):
                                 np.trace(obj.conj().T.dot(obj))
                             )/K
 
-            #S = [] # Secret Independence
-            #Eu = []
-            # E = evo_final if isinstance(evo_final, np.ndarray) else evo_final.full()
-            # print(E)
-            #for j in range(K):
-            #    rho_j = rho_tot[d*j:d*(j+1), d*j:d*(j+1)]
-            #    print(rho_j)
-            #    Uj = np.asarray(U[j], dtype=complex)
-            #    Eu.append(rho_j)
-            #    S.append(Uj.conj().T @ rho_j @ Uj)
-
             print('Secret Independence = ', secret_ind)
 
             # Calculate the fidelity error using the trace difference norm
@@ -949,6 +938,37 @@ class SecretInd(FidelityComputer):
 
         evo_final = dyn._fwd_evo[n_ts]
         evo_f_diff = dyn._target - evo_final
+
+        rho_tot = np.asarray(evo_final, dtype=complex)
+        if rho_tot.ndim == 2 and rho_tot.shape[1] == 1:
+            rho_tot = rho_tot[:, 0]  # flatten to (256,)
+
+        D = int(np.sqrt(np.shape(rho_tot)[0]))
+        print(D)
+        d = 2
+        K = int(D / d)
+
+        # Unvectorize vec(rho) -> rho using column-major order
+        rho_evo = rho_tot.reshape((D, D), order='F')   # (16,16) numpy
+        
+        # Build U_j = Rz(0) Ry(theta_j) = Ry(theta_j), theta_j = j*pi/4, j=0..7
+        U = np.eye(K*d, dtype=np.complex128)
+        for j in range(K):
+            U[j*d:(j+1)*d, j*d:(j+1)*d] = Rx(j * np.pi / 4.0)
+
+        # Reversing the evolved rho into the objective rho
+        rho_obj = U.conjugate().T @ rho_evo @ U
+
+        # Finding the averaged objective rho
+        rho_ave = np.zeros((d, d), dtype=complex)
+        for i in range(K):
+            rho_ave += rho_obj[i*d:(i+1)*d, i*d:(i+1)*d]/K
+        rho_ave_block = np.eye(K*d, dtype=np.complex128)
+        for j in range(K):
+            rho_ave_block[j*d:(j+1)*d, j*d:(j+1)*d] = rho_ave
+
+        obj = rho_obj - rho_ave_block
+        
         for j in range(n_ctrls):
             for k in range(n_ts):
                 fwd_evo = dyn._fwd_evo[k]
@@ -981,20 +1001,15 @@ class SecretInd(FidelityComputer):
                 if grad_tot.ndim == 2 and grad_tot.shape[1] == 1:
                     grad_tot = grad_tot[:, 0]  # flatten to (256,)
     
-                D = int(np.sqrt(np.shape(grad_tot)[0]))
-                print(D)
-                d = 2
-                K = int(D / d)
+                #D = int(np.sqrt(np.shape(grad_tot)[0]))
+                #print(D)
+                #d = 2
+                #K = int(D / d)
     
                 # Unvectorize vec(rho) -> rho using column-major order
                 grad_evo = grad_tot.reshape((D, D), order='F')   # (16,16) numpy
 
                 evo_grad_si = grad_evo
-
-                # Build U_j = Rz(0) Ry(theta_j) = Ry(theta_j), theta_j = j*pi/4, j=0..7
-                U = np.eye(K*d, dtype=np.complex128)
-                for j in range(K):
-                    U[j*d:(j+1)*d, j*d:(j+1)*d] = Rx(j * np.pi / 4.0)
 
                 grad_obj = U.conjugate().T @ evo_grad_si @ U
                 grad_ave = np.zeros((d, d), dtype=complex)
