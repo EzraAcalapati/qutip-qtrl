@@ -842,6 +842,7 @@ class SecretInd(FidelityComputer):
                 self.fid_err = self.scale_factor * np.real(
                     _trace(evo_f_diff.conj().T.dot(evo_f_diff))
                 )
+                print(self.fid_err)
                 #self.fid_err = self.scale_factor * np.real(
                 #    _trace(evo_f_diff.conj().T.dot(evo_f_diff))
                 #) * K**3
