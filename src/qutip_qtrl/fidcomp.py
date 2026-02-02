@@ -867,7 +867,7 @@ class SecretInd(FidelityComputer):
                 self.fid_err = self.scale_factor * np.real(
                     _trace(evo_f_diff.conj().T.dot(evo_f_diff))
                 )
-                self.fid_err = self.fid_err + self.scale_factor * secret_ind
+                self.fid_err = self.fid_err + secret_ind
                 print('This is not a Qobj')
 
             if np.isnan(self.fid_err):
@@ -1026,7 +1026,7 @@ class SecretInd(FidelityComputer):
                 g1 = 2* np.real(
                                     np.trace(obj.conj().T.dot(obj_grad))
                                 )/K
-                g = g + self.scale_factor * g1
+                g = g + g1
                 
                 grad[k, j] = g
         if dyn.stats is not None:
