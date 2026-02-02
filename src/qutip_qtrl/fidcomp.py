@@ -787,12 +787,18 @@ class SecretInd(FidelityComputer):
                     ),
                 )
 
-            def Ry(theta: float) -> np.ndarray:
-                """R_y(theta) = exp(-i theta/2 * sigma_y) in the {|0>,|1>} basis."""
+            #def Ry(theta: float) -> np.ndarray:
+            #    """R_y(theta) = exp(-i theta/2 * sigma_y) in the {|0>,|1>} basis."""
+            #    c = np.cos(theta / 2.0)
+            #    s = np.sin(theta / 2.0)
+            #    return np.array([[c, -s],
+            #                     [s,  c]], dtype=complex)
+            def Rx(theta: float) -> np.ndarray:
+                """R_x(theta) = exp(-i theta/2 * sigma_x) in the {|0>,|1>} basis."""
                 c = np.cos(theta / 2.0)
                 s = np.sin(theta / 2.0)
-                return np.array([[c, -s],
-                                 [s,  c]], dtype=complex)
+                return np.array([[c, -1j*s],
+                                 [-1j*s, c]], dtype=complex)
     
             def as_same_type(U_tot: np.ndarray, evo_final):
                 """
@@ -811,35 +817,54 @@ class SecretInd(FidelityComputer):
                 except Exception:
                     return U.astype(complex, copy=False)
 
-            E = np.asarray(evo_final, dtype=complex)
-            if E.ndim == 2 and E.shape[1] == 1:
-                E = E[:, 0]  # flatten to (256,)
+            rho_evo = np.asarray(evo_final, dtype=complex)
+            if rho_evo.ndim == 2 and E.shape[1] == 1:
+                rho_evo = E[:, 0]  # flatten to (256,)
 
-            D = int(np.sqrt(np.shape(E)[0]))
+            D = int(np.sqrt(np.shape(rho_evo)[0]))
             print(D)
             d = 2
             K = int(D / d)
 
             # Build U_j = Rz(0) Ry(theta_j) = Ry(theta_j), theta_j = j*pi/4, j=0..7
-            U = [Ry(j * np.pi / 4.0) for j in range(K)]
+            #U = [Ry(j * np.pi / 4.0) for j in range(K)]
+            # Build U_j = Rz(0) Ry(theta_j) = Ry(theta_j), theta_j = j*pi/4, j=0..7
+            U = np.eye(K*d, dtype=np.complex128)
+            for j in range(K):
+                U[j*d:(j+1)*d, j*d:(j+1)*d] = Rx(j * np.pi / 4.0)
 
-            
+            # Reversing the evolved rho into the objective rho
+            rho_obj = U.conjugate().T @ rho_evo @ U
+
+            # Finding the averaged objective rho
+            rho_ave = np.zeros((d, d), dtype=complex)
+            for i in range(K):
+                rho_ave += rho_obj[i*d:(i+1)*d, i*d:(i+1)*d]/K
+            rho_ave_block = np.eye(K*d, dtype=np.complex128)
+            for j in range(K):
+                rho_ave_block[j*d:(j+1)*d, j*d:(j+1)*d] = rho_ave
+
+            obj = rho_obj - rho_ave_block
+            # Secret Independence
+            secret_ind = np.real(
+                                np.trace(obj.conj().T.dot(obj))
+                            )/K
             
             # Unvectorize vec(rho) -> rho using column-major order
-            rho_tot = E.reshape((D, D), order='F')   # (16,16) numpy
+            #rho_tot = rho_evo.reshape((D, D), order='F')   # (16,16) numpy
 
-            S = [] # Secret Independence
-            Eu = []
+            #S = [] # Secret Independence
+            #Eu = []
             # E = evo_final if isinstance(evo_final, np.ndarray) else evo_final.full()
             # print(E)
-            for j in range(K):
-                rho_j = rho_tot[d*j:d*(j+1), d*j:d*(j+1)]
-                print(rho_j)
-                Uj = np.asarray(U[j], dtype=complex)
-                Eu.append(rho_j)
-                S.append(Uj.conj().T @ rho_j @ Uj)
+            #for j in range(K):
+            #    rho_j = rho_tot[d*j:d*(j+1), d*j:d*(j+1)]
+            #    print(rho_j)
+            #    Uj = np.asarray(U[j], dtype=complex)
+            #    Eu.append(rho_j)
+            #    S.append(Uj.conj().T @ rho_j @ Uj)
 
-            print('Secret Independence = ', S)
+            print('Secret Independence = ', secret_ind)
 
             # Calculate the fidelity error using the trace difference norm
             # Note that the value should have not imagnary part, so using
