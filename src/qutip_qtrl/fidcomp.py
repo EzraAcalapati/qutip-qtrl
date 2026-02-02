@@ -818,7 +818,7 @@ class SecretInd(FidelityComputer):
                     return U.astype(complex, copy=False)
 
             rho_evo = np.asarray(evo_final, dtype=complex)
-            if rho_evo.ndim == 2 and E.shape[1] == 1:
+            if rho_evo.ndim == 2 and rho_evo.shape[1] == 1:
                 rho_evo = rho_evo[:, 0]  # flatten to (256,)
 
             D = int(np.sqrt(np.shape(rho_evo)[0]))
