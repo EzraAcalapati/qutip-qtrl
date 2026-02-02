@@ -996,8 +996,8 @@ class SecretInd(FidelityComputer):
                     grad_ave += grad_obj[i*d:(i+1)*d, i*d:(i+1)*d]/K
                 
                 grad_ave_block = np.eye(K*d, dtype=np.complex128)
-                for j in range(K):
-                    grad_ave_block[j*d:(j+1)*d, j*d:(j+1)*d] = grad_ave
+                for i in range(K):
+                    grad_ave_block[i*d:(i+1)*d, i*d:(i+1)*d] = grad_ave
                 
                 obj_grad = grad_obj - grad_ave_block
                 
