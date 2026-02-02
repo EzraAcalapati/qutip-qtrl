@@ -817,9 +817,9 @@ class SecretInd(FidelityComputer):
                 except Exception:
                     return U.astype(complex, copy=False)
 
-            E = np.asarray(evo_final, dtype=complex)
-            if E.ndim == 2 and E.shape[1] == 1:
-                rho_tot = E[:, 0]  # flatten to (256,)
+            rho_tot = np.asarray(evo_final, dtype=complex)
+            if rho_tot.ndim == 2 and rho_tot.shape[1] == 1:
+                rho_tot = rho_tot[:, 0]  # flatten to (256,)
 
             # Unvectorize vec(rho) -> rho using column-major order
             rho_evo = rho_tot.reshape((D, D), order='F')   # (16,16) numpy
