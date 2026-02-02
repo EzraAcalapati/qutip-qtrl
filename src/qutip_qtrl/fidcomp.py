@@ -828,7 +828,7 @@ class SecretInd(FidelityComputer):
                                 np.trace(obj.conj().T.dot(obj))
                             )*K
 
-            # print('Secret Independence = ', secret_ind)
+            print('Secret Independence = ', secret_ind)
 
             # Calculate the fidelity error using the trace difference norm
             # Note that the value should have not imagnary part, so using
@@ -842,7 +842,7 @@ class SecretInd(FidelityComputer):
                 self.fid_err = self.scale_factor * np.real(
                     _trace(evo_f_diff.conj().T.dot(evo_f_diff))
                 )
-                print(self.fid_err)
+                print('fidelity error = ', self.fid_err)
                 #self.fid_err = self.scale_factor * np.real(
                 #    _trace(evo_f_diff.conj().T.dot(evo_f_diff))
                 #) * K**3
