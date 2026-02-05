@@ -1018,7 +1018,6 @@ class SecretInd(FidelityComputer):
                                 )*K
                 g = g + g1 * self.si_weight
                 #g = g * K**3
-                print('SI Weight = ', self.si_weight)
                 grad[k, j] = g
         if dyn.stats is not None:
             dyn.stats.wall_time_gradient_compute += (
