@@ -743,6 +743,11 @@ class SecretInd(FidelityComputer):
         self.id_text = "SECRETIND"
         self.scale_factor = None
         self.uses_onwd_evo = True
+
+        self.si_weight = None      # was 0.001
+        self.U = None
+        self.Udag = None
+        
         if not self.parent.prop_computer.grad_exact:
             raise errors.UsageError(
                 "This FidelityComputer can only be"
@@ -761,6 +766,12 @@ class SecretInd(FidelityComputer):
                 logger.debug(
                     "Scale factor calculated as {}".format(self.scale_factor)
                 )
+
+        if self.U is None:
+            raise errors.UsageError("Pass U via optimize_pulse(..., fid_params={'U': U}).")
+
+        self.U = np.asarray(self.U, dtype=complex)
+        self.Udag = self.U.conjugate().T
 
     def get_fid_err(self):
         """
@@ -787,12 +798,12 @@ class SecretInd(FidelityComputer):
                     ),
                 )
                 
-            def Rx(theta: float) -> np.ndarray:
-                """R_x(theta) = exp(-i theta/2 * sigma_x) in the {|0>,|1>} basis."""
-                c = np.cos(theta / 2.0)
-                s = np.sin(theta / 2.0)
-                return np.array([[c, -1j*s],
-                                 [-1j*s, c]], dtype=complex)
+            #def Rx(theta: float) -> np.ndarray:
+            #    """R_x(theta) = exp(-i theta/2 * sigma_x) in the {|0>,|1>} basis."""
+            #    c = np.cos(theta / 2.0)
+            #    s = np.sin(theta / 2.0)
+            #    return np.array([[c, -1j*s],
+            #                     [-1j*s, c]], dtype=complex)
 
             rho_tot = np.asarray(evo_final, dtype=complex)
             if rho_tot.ndim == 2 and rho_tot.shape[1] == 1:
@@ -807,12 +818,12 @@ class SecretInd(FidelityComputer):
             rho_evo = rho_tot.reshape((D, D), order='F')   # (16,16) numpy
 
             # Build U_j = Rz(0) Ry(theta_j) = Ry(theta_j), theta_j = j*pi/4, j=0..7
-            U = np.eye(K*d, dtype=np.complex128)
-            for j in range(K):
-                U[j*d:(j+1)*d, j*d:(j+1)*d] = Rx(j * 2 * np.pi / K)
+            #U = np.eye(K*d, dtype=np.complex128)
+            #for j in range(K):
+            #    U[j*d:(j+1)*d, j*d:(j+1)*d] = Rx(j * 2 * np.pi / K)
 
             # Reversing the evolved rho into the objective rho
-            rho_obj = U.conjugate().T @ rho_evo @ U
+            rho_obj = self.Udag @ rho_evo @ self.U
 
             # Finding the averaged objective rho
             rho_ave = np.zeros((d, d), dtype=complex)
@@ -842,12 +853,13 @@ class SecretInd(FidelityComputer):
                 self.fid_err = self.scale_factor * np.real(
                     _trace(evo_f_diff.conj().T.dot(evo_f_diff))
                 )
-                print('fidelity error = ', self.fid_err)
-                #self.fid_err = self.scale_factor * np.real(
-                #    _trace(evo_f_diff.conj().T.dot(evo_f_diff))
-                #) * K**3
-                self.fid_err = self.fid_err + secret_ind * 0.001
-                #print('This is not a Qobj')
+
+            print('fidelity error = ', self.fid_err)
+            #self.fid_err = self.scale_factor * np.real(
+            #    _trace(evo_f_diff.conj().T.dot(evo_f_diff))
+            #) * K**3
+            self.fid_err = self.fid_err + secret_ind * self.si_weight
+            #print('This is not a Qobj')
 
             if np.isnan(self.fid_err):
                 self.fid_err = np.inf
@@ -900,12 +912,12 @@ class SecretInd(FidelityComputer):
         n_ctrls = dyn.num_ctrls
         n_ts = dyn.num_tslots
 
-        def Rx(theta: float) -> np.ndarray:
-            """R_x(theta) = exp(-i theta/2 * sigma_x) in the {|0>,|1>} basis."""
-            c = np.cos(theta / 2.0)
-            s = np.sin(theta / 2.0)
-            return np.array([[c, -1j*s],
-                             [-1j*s, c]], dtype=complex)
+        #def Rx(theta: float) -> np.ndarray:
+        #    """R_x(theta) = exp(-i theta/2 * sigma_x) in the {|0>,|1>} basis."""
+        #    c = np.cos(theta / 2.0)
+        #    s = np.sin(theta / 2.0)
+        #    return np.array([[c, -1j*s],
+        #                     [-1j*s, c]], dtype=complex)
 
         # create n_ts x n_ctrls zero array for grad start point
         grad = np.zeros([n_ts, n_ctrls])
@@ -931,12 +943,12 @@ class SecretInd(FidelityComputer):
         rho_evo = rho_tot.reshape((D, D), order='F')   # (16,16) numpy
         
         # Build U_j = Rz(0) Ry(theta_j) = Ry(theta_j), theta_j = j*pi/4, j=0..7
-        U = np.eye(K*d, dtype=np.complex128)
-        for j in range(K):
-            U[j*d:(j+1)*d, j*d:(j+1)*d] = Rx(j * 2 * np.pi / K)
+        #U = np.eye(K*d, dtype=np.complex128)
+        #for j in range(K):
+        #    U[j*d:(j+1)*d, j*d:(j+1)*d] = Rx(j * 2 * np.pi / K)
 
         # Reversing the evolved rho into the objective rho
-        rho_obj = U.conjugate().T @ rho_evo @ U
+        rho_obj = self.Udag @ rho_evo @ self.U
 
         # Finding the averaged objective rho
         rho_ave = np.zeros((d, d), dtype=complex)
@@ -1004,7 +1016,7 @@ class SecretInd(FidelityComputer):
                 g1 = 2* np.real(
                                     np.trace(obj.conj().T.dot(obj_grad))
                                 )*K
-                g = g + g1 * 0.001
+                g = g + g1 * self.si_weight
                 #g = g * K**3
                 grad[k, j] = g
         if dyn.stats is not None:
