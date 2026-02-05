@@ -1002,7 +1002,7 @@ class SecretInd(FidelityComputer):
 
                 evo_grad_si = grad_evo
 
-                grad_obj = U.conjugate().T @ evo_grad_si @ U
+                grad_obj = self.Udag @ evo_grad_si @ self.U
                 grad_ave = np.zeros((d, d), dtype=complex)
                 for i in range(K):
                     grad_ave += grad_obj[i*d:(i+1)*d, i*d:(i+1)*d]/K
@@ -1018,6 +1018,7 @@ class SecretInd(FidelityComputer):
                                 )*K
                 g = g + g1 * self.si_weight
                 #g = g * K**3
+                print('SI Weight = ', self.si_weight)
                 grad[k, j] = g
         if dyn.stats is not None:
             dyn.stats.wall_time_gradient_compute += (
